@@ -29,9 +29,9 @@ RelayState = tuple[bool, bool, bool, bool]
 async def get_client(settings: Annotated[Settings, Depends(get_settings)]):
     async with interface_lock:
         async with AsyncModbusTcpClient(
-            settings.relay_host,
-            port=settings.relay_port,
-            timeout=settings.relay_timeout,
+            settings.relay.host,
+            port=settings.relay.port,
+            timeout=settings.relay.timeout,
         ) as client:
             yield client
 

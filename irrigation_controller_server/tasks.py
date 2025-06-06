@@ -64,7 +64,7 @@ async def start_zone_action(config: ZoneConfig):
     async with relay.get_client(settings) as client:
         await relay.set_output(
             client,
-            slave=settings.relay_unit_id,
+            slave=settings.relay.unit_id,
             address=config.name.address,
             value=True,
         )
@@ -75,7 +75,7 @@ async def stop_zone_action(config: ZoneConfig):
     async with relay.get_client(settings) as client:
         await relay.set_output(
             client,
-            slave=settings.relay_unit_id,
+            slave=settings.relay.unit_id,
             address=config.name.address,
             value=False,
         )

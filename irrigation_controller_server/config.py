@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 from pydantic import BaseModel
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class RelayConfig(BaseModel):
@@ -20,6 +20,8 @@ class BrokerConfig(BaseModel):
 class Settings(BaseSettings):
     relay: RelayConfig
     broker: BrokerConfig
+
+    model_config = SettingsConfigDict(env_nested_delimiter="__")
 
 
 @lru_cache
