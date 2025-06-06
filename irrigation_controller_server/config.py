@@ -18,6 +18,7 @@ class BrokerConfig(BaseModel):
 
 
 class Settings(BaseSettings):
+    celery_conf: str
     relay: RelayConfig
     broker: BrokerConfig
 

@@ -10,8 +10,9 @@ from pydantic import BaseModel, field_serializer, TypeAdapter
 from irrigation_controller_server.config import get_settings
 from irrigation_controller_server.interface import relay
 
+settings = get_settings()
 app = Celery("tasks")
-app.config_from_object("celeryconfig")
+app.config_from_object(settings.celery_conf)
 
 # Time to wait while switching zones
 ZONE_START_DELAY = 10
