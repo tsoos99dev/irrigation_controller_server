@@ -1,10 +1,12 @@
+from typing import Annotated
+
 from pydantic import BaseModel, Field
 from sqlalchemy_celery_beat import CrontabSchedule, PeriodicTask, SessionManager
 from sqlalchemy import select, delete
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Depends
 from starlette.status import HTTP_200_OK
 
-from irrigation_controller_server.celeryconfig import beat_dburi
+from irrigation_controller_server.config import Settings, get_settings
 
 router = APIRouter(prefix="/schedule", tags=["schedule"])
 
@@ -23,16 +25,16 @@ class ScheduleConfig(BaseModel):
 
 
 @router.get("/")
-async def list_schedule():
+async def list_schedule(settings: Annotated[Settings, Depends(get_settings)]):
     session_manager = SessionManager()
-    session = session_manager.session_factory(beat_dburi)
+    session = session_manager.session_factory(settings.broker.beat_dburi)
     return list(session.scalars(select(PeriodicTask)))
 
 
 @router.get("/{name}")
-async def get_schedule(name: str):
+async def get_schedule(name: str, settings: Annotated[Settings, Depends(get_settings)]):
     session_manager = SessionManager()
-    session = session_manager.session_factory(beat_dburi)
+    session = session_manager.session_factory(settings.broker.beat_dburi)
     schedule = session.execute(
         select(PeriodicTask).where(PeriodicTask.name == name)
     ).scalar_one_or_none()
@@ -44,9 +46,11 @@ async def get_schedule(name: str):
 
 
 @router.post("/")
-async def set_schedule(config: ScheduleConfig):
+async def set_schedule(
+    config: ScheduleConfig, settings: Annotated[Settings, Depends(get_settings)]
+):
     session_manager = SessionManager()
-    session = session_manager.session_factory(beat_dburi)
+    session = session_manager.session_factory(settings.broker.beat_dburi)
 
     task = f"irrigation_controller_server.tasks.{config.task}"
 
@@ -77,9 +81,11 @@ async def set_schedule(config: ScheduleConfig):
 
 
 @router.delete("/{name}")
-async def delete_schedule(name: str):
+async def delete_schedule(
+    name: str, settings: Annotated[Settings, Depends(get_settings)]
+):
     session_manager = SessionManager()
-    session = session_manager.session_factory(beat_dburi)
+    session = session_manager.session_factory(settings.broker.beat_dburi)
     result = session.execute(delete(PeriodicTask).where(PeriodicTask.name == name))
     session.commit()
 
