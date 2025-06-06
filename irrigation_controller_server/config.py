@@ -11,8 +11,15 @@ class RelayConfig(BaseModel):
     timeout: int
 
 
+class BrokerConfig(BaseModel):
+    url: str
+    result_backend: str
+    beat_dburi: str
+
+
 class Settings(BaseSettings):
     relay: RelayConfig
+    broker: BrokerConfig
 
 
 @lru_cache
