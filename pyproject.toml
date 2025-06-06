@@ -24,7 +24,12 @@ dependencies = [
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.poetry]
+package-mode = false
+
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.13"
 black = "^25.1.0"
 
+[tool.poetry.scripts]
+start = "irrigation_controller_server.app:main"
