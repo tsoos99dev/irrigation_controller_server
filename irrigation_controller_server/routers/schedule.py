@@ -2,7 +2,7 @@ import json
 import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, field_serializer, ConfigDict
 from sqlalchemy_celery_beat import CrontabSchedule, PeriodicTask, SessionManager
 from sqlalchemy import select, delete
 from fastapi import APIRouter, HTTPException, Response, Depends
@@ -42,7 +42,13 @@ class PartialTaskConfig(BaseModel):
     name: str | None = None
     enabled: bool | None = None
     schedule: PartialScheduleConfig | None = None
-    parameters: IrrigationConfig | None = None
+    parameters: IrrigationConfig | None = Field(serialization_alias="kwargs")
+
+    @field_serializer("parameters")
+    def serialize_parameters(self, parameters: IrrigationConfig, _info):
+        return parameters.model_dump_json()
+
+    model_config = ConfigDict(serialize_by_alias=True)
 
 
 class ScheduleConfigResponse(BaseModel):
