@@ -42,7 +42,7 @@ class PartialTaskConfig(BaseModel):
     name: str | None = None
     enabled: bool | None = None
     schedule: PartialScheduleConfig | None = None
-    parameters: IrrigationConfig | None = Field(serialization_alias="kwargs")
+    parameters: IrrigationConfig | None = Field(None, serialization_alias="kwargs")
 
     @field_serializer("parameters")
     def serialize_parameters(self, parameters: IrrigationConfig, _info):
