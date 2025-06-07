@@ -14,6 +14,8 @@ settings = get_settings()
 app = Celery("tasks")
 app.config_from_object(settings.celery_conf)
 
+IRRIGATION_TASK = "irrigation_controller_server.tasks.irrigate"
+
 # Time to wait while switching zones
 ZONE_START_DELAY = 10
 
@@ -111,7 +113,7 @@ def irrigate_zone(self, **kwargs):
     return self.replace(workflow)
 
 
-@app.task(bind=True)
+@app.task(bind=True, name=IRRIGATION_TASK)
 def irrigate(self, *args, **kwargs):
     try:
         config = IrrigationConfig.model_validate(kwargs)

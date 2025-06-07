@@ -7,13 +7,13 @@ from fastapi import APIRouter, HTTPException, Response, Depends
 from starlette.status import HTTP_200_OK
 
 from irrigation_controller_server.config import Settings, get_settings
+from irrigation_controller_server.tasks import IRRIGATION_TASK
 
 router = APIRouter(prefix="/schedule", tags=["schedule"])
 
 
 class ScheduleConfig(BaseModel):
     name: str
-    task: str
     minute: str = "*"
     hour: str = "*"
     day_of_week: str = "*"
@@ -28,7 +28,11 @@ class ScheduleConfig(BaseModel):
 async def list_schedule(settings: Annotated[Settings, Depends(get_settings)]):
     session_manager = SessionManager()
     session = session_manager.session_factory(settings.broker.beat_dburi)
-    return list(session.scalars(select(PeriodicTask)))
+    return list(
+        session.scalars(
+            select(PeriodicTask).where(PeriodicTask.task == IRRIGATION_TASK)
+        )
+    )
 
 
 @router.get("/{name}")
@@ -36,7 +40,9 @@ async def get_schedule(name: str, settings: Annotated[Settings, Depends(get_sett
     session_manager = SessionManager()
     session = session_manager.session_factory(settings.broker.beat_dburi)
     schedule = session.execute(
-        select(PeriodicTask).where(PeriodicTask.name == name)
+        select(PeriodicTask).where(
+            PeriodicTask.name == name, PeriodicTask.task == IRRIGATION_TASK
+        )
     ).scalar_one_or_none()
 
     if schedule is None:
@@ -51,8 +57,6 @@ async def set_schedule(
 ):
     session_manager = SessionManager()
     session = session_manager.session_factory(settings.broker.beat_dburi)
-
-    task = f"irrigation_controller_server.tasks.{config.task}"
 
     schedule = CrontabSchedule(
         minute=config.minute,
@@ -70,7 +74,7 @@ async def set_schedule(
     periodic_task = PeriodicTask(
         schedule_model=schedule,
         name=config.name,
-        task=task,
+        task=IRRIGATION_TASK,
         args=config.args,
         kwargs=config.kwargs,
     )
@@ -86,7 +90,11 @@ async def delete_schedule(
 ):
     session_manager = SessionManager()
     session = session_manager.session_factory(settings.broker.beat_dburi)
-    result = session.execute(delete(PeriodicTask).where(PeriodicTask.name == name))
+    result = session.execute(
+        delete(PeriodicTask).where(
+            PeriodicTask.name == name, PeriodicTask.task == IRRIGATION_TASK
+        )
+    )
     session.commit()
 
     if result.rowcount == 0:
