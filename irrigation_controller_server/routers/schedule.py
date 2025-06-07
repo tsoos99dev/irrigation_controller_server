@@ -1,3 +1,4 @@
+import json
 from typing import Annotated
 
 from pydantic import BaseModel, Field
@@ -75,8 +76,8 @@ async def set_schedule(
         schedule_model=schedule,
         name=config.name,
         task=IRRIGATION_TASK,
-        args=config.args,
-        kwargs=config.kwargs,
+        args=json.dumps(config.args),
+        kwargs=json.dumps(config.kwargs),
     )
     session.add(periodic_task)
     session.commit()
