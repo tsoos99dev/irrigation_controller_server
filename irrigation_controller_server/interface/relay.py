@@ -26,12 +26,12 @@ RelayState = tuple[bool, bool, bool, bool]
 
 
 @asynccontextmanager
-async def get_client(settings: Annotated[Settings, Depends(get_settings)]):
+async def get_client(host: str, port: int, timeout: float):
     async with interface_lock:
         async with AsyncModbusTcpClient(
-            settings.relay.host,
-            port=settings.relay.port,
-            timeout=settings.relay.timeout,
+            host,
+            port=port,
+            timeout=timeout,
         ) as client:
             yield client
 
@@ -61,9 +61,8 @@ async def set_output(
     client: AsyncModbusTcpClient, slave: int, address: int, value: bool
 ):
     if value is False:
-        return await _set_output_unsafe(
-            client, slave=slave, address=address, value=value
-        )
+        await _set_output_unsafe(client, slave=slave, address=address, value=value)
+        return value
 
     current_state = await get_status(client, slave=slave)
     num_active_outputs = quantify(current_state, lambda s: s)
@@ -71,4 +70,4 @@ async def set_output(
         raise RelayError(RelayErrorKind.TooManyActiveOutputs.value)
 
     await _set_output_unsafe(client, slave=slave, address=address, value=value)
-    return None
+    return value

@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from enum import StrEnum
 import datetime
 
 import pydantic
@@ -9,6 +8,7 @@ from pydantic import BaseModel, field_serializer, TypeAdapter
 
 from irrigation_controller_server.config import get_settings
 from irrigation_controller_server.interface import relay
+from irrigation_controller_server.models import ZoneType
 
 settings = get_settings()
 app = Celery("tasks")
@@ -17,7 +17,7 @@ app.config_from_object(settings.celery_conf)
 IRRIGATION_TASK = "irrigation_controller_server.tasks.irrigate"
 
 # Time to wait while switching zones
-ZONE_START_DELAY = 10
+ZONE_START_DELAY = 3
 
 
 logger = logging.getLogger(__name__)
@@ -27,29 +27,8 @@ class IrrigationTaskError(Exception):
     pass
 
 
-class ZoneEnum(StrEnum):
-    Rear = "rear"
-    Center = "center"
-    Front = "front"
-    Drip = "drip"
-
-    @property
-    def address(self):
-        match self:
-            case ZoneEnum.Rear:
-                return 0
-            case ZoneEnum.Center:
-                return 3
-            case ZoneEnum.Front:
-                return 1
-            case ZoneEnum.Drip:
-                return 2
-            case _:
-                raise ValueError(f"Zone {self} has no address defined")
-
-
 class ZoneConfig(BaseModel):
-    name: ZoneEnum
+    name: ZoneType
     duration: datetime.timedelta
 
     @field_serializer("duration")
@@ -64,22 +43,44 @@ class IrrigationConfig(BaseModel):
 
 async def start_zone_action(config: ZoneConfig):
     settings = get_settings()
-    async with relay.get_client(settings) as client:
-        await relay.set_output(
+
+    zone_config = settings.zones.get(config.name)
+    if zone_config is None:
+        return
+
+    relay_config = settings.relays.get(zone_config.relay_id)
+    if relay_config is None:
+        return
+
+    async with relay.get_client(
+        relay_config.host, relay_config.port, relay_config.timeout
+    ) as client:
+        return await relay.set_output(
             client,
-            slave=settings.relay.unit_id,
-            address=config.name.address,
+            slave=relay_config.unit_id,
+            address=zone_config.relay_output,
             value=True,
         )
 
 
 async def stop_zone_action(config: ZoneConfig):
     settings = get_settings()
-    async with relay.get_client(settings) as client:
-        await relay.set_output(
+
+    zone_config = settings.zones.get(config.name)
+    if zone_config is None:
+        return
+
+    relay_config = settings.relays.get(zone_config.relay_id)
+    if relay_config is None:
+        return
+
+    async with relay.get_client(
+        relay_config.host, relay_config.port, relay_config.timeout
+    ) as client:
+        return await relay.set_output(
             client,
-            slave=settings.relay.unit_id,
-            address=config.name.address,
+            slave=relay_config.unit_id,
+            address=zone_config.relay_output,
             value=False,
         )
 
