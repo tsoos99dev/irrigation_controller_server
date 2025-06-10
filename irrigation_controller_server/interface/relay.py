@@ -65,6 +65,9 @@ async def set_output(
         return value
 
     current_state = await get_status(client, slave=slave)
+    if current_state[address]:
+        return value
+
     num_active_outputs = quantify(current_state, lambda s: s)
     if num_active_outputs != 0:
         raise RelayError(RelayErrorKind.TooManyActiveOutputs.value)

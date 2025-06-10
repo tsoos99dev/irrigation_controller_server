@@ -4,6 +4,7 @@ from typing import Annotated
 
 from irrigation_controller_server.interface import relay
 from irrigation_controller_server.config import Settings, get_settings
+from irrigation_controller_server.interface.relay import RelayError
 from irrigation_controller_server.models import ZoneType
 
 router = APIRouter(prefix="/zone", tags=["zone"])
@@ -56,9 +57,14 @@ async def set_zone(
     async with relay.get_client(
         relay_config.host, relay_config.port, relay_config.timeout
     ) as client:
-        return await relay.set_output(
-            client,
-            slave=relay_config.unit_id,
-            address=zone_config.relay_output,
-            value=zone_setting.value,
-        )
+        try:
+            state = await relay.set_output(
+                client,
+                slave=relay_config.unit_id,
+                address=zone_config.relay_output,
+                value=zone_setting.value,
+            )
+        except RelayError as e:
+            return str(e)
+
+        return state
