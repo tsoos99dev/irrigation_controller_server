@@ -24,7 +24,10 @@ async def status(
         async with relay.get_client(
             relay_config.host, relay_config.port, relay_config.timeout
         ) as client:
-            state = await relay.get_status(client, slave=relay_config.unit_id)
+            try:
+                state = await relay.get_status(client, slave=relay_config.unit_id)
+            except RelayError as e:
+                return str(e)
 
         relay_states[relay_id] = state
 
